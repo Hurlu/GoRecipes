@@ -1,12 +1,14 @@
 package models
 
-import (
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
-)
+import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type Recipe struct {
-	gorm.Model
-	Text string
-	Picture []byte
+	Id primitive.ObjectID `bson:"_id"`
+	AuthorID primitive.ObjectID
+	Name string
+	Instructions string
+	IngredientIDs []primitive.ObjectID
+	IngredientQuantities []int
+	Tags []string
+	Picture [][]byte
 }

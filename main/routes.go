@@ -3,88 +3,57 @@ package main
 import (
 	"GoRecipes/models"
 	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"net/http"
 )
 
-func mongoConnect() *mongo.Client{
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+func mainRoutes(router *gin.Engine, db *mongo.Database){
 
-	// Connect to MongoDB
-	client, err := mongo.Connect(context.TODO(), clientOptions)
+	recipes := db.Collection("Recipes")
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Check the connection
-	err = client.Ping(context.TODO(), nil)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Connected to MongoDB!")
-	return client
-}
-
-func main() {
-	router := gin.Default()
-
-	var cli *mongo.Client = mongoConnect()
-	var db *mongo.Database = cli.Database("GoRecipes")
-
-
-	testUnit := models.Unit{Name: "Grams", Units: []string{"mg", "g", "kg"},
-		Quantities:[]int{1, 1000, 1000000}, DefaultUnitIndex:1}
-
-	units := db.Collection("Units")
-
-	_ , err := units.InsertOne(context.TODO(), testUnit)
-	if err != nil{
-		log.Fatal(err)
-	}
-
-	auth_routes(router)
-
-	router.NoRoute(func(c * gin.Context){
-		c.String(http.StatusOK, "SALUTOULMONDE C'EST DAVID LAFARGE \nP\nO\nK\nE\nM\nO\nN\nAUJOURD'HUI POUR OUVRIR DE NOUVEAUX BOOSTERS!")
-	})
-
-	router.GET("/units", func(c *gin.Context) {
-		var unit models.Unit
-		filter := bson.D{{"name", "Grams"}}
-		err := units.FindOne(context.TODO(), filter).Decode(&unit)
+	router.GET("/home", func(c *gin.Context){
+		var objRecipes []*models.Recipe
+		cur, err := recipes.Find(context.TODO(), bson.D{})
 		if err != nil {
 			log.Fatal(err)
 		}
-		c.String(http.StatusOK, "Unit name: %s. Default symbol : %s", unit.Name, unit.Units[unit.DefaultUnitIndex])
+
+		for cur.Next(context.TODO()) {
+
+			// create a value into which the single document can be decoded
+			var elem models.Recipe
+			err := cur.Decode(&elem)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			objRecipes = append(objRecipes, &elem)
+		}
+
+		if err := cur.Err(); err != nil {
+			log.Fatal(err)
+		}
+
+		// Close the cursor once finished
+		_ = cur.Close(context.TODO())
+
+		c.HTML(http.StatusOK, "index.html", gin.H{"recipes" : objRecipes})
 	})
 
-	// This handler will match /user/john but will not match /user/ or /user
-	router.GET("/user/:name", func(c *gin.Context) {
-		name := c.Param("name")
-		c.String(http.StatusOK, "Hello %s", name)
+	router.NoRoute(func(c * gin.Context){
+		c.Redirect(http.StatusMovedPermanently, "/home")
 	})
 
-	// However, this one will match /user/john/ and also /user/john/send
-	// If no other routers match /user/john, it will redirect to /user/john/
-	router.GET("/user/:name/*action", func(c *gin.Context) {
-		name := c.Param("name")
-		action := c.Param("action")
-		message := name + " is " + action
-		c.String(http.StatusOK, message)
+	router.GET("/recipe/:id", func(c *gin.Context) {
+		var recipe models.Recipe
+		err := db.Collection("Recipes").FindOne(context.TODO(), bson.D{{"id", c.Param("id")}}).Decode(&recipe)
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.HTML(http.StatusOK, "recipe.html", gin.H{"recipe": recipe})
 	})
 
-	// For each matched request Context will hold the route definition
-	router.POST("/user/:name/*action", func(c *gin.Context) {
-			//c.FullPath() == "/user/:name/*action" // true
-	})
-
-	router.Run()
 }

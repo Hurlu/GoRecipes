@@ -1,12 +1,9 @@
 package models
 
-import (
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
-)
+import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type Ingredient struct {
-	gorm.Model
+	Id primitive.ObjectID`bson:"_id"`
 	Name string
-	Unit Unit
+	UnitID primitive.ObjectID
 }

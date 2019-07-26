@@ -1,9 +1,9 @@
 package models
 
-import "github.com/jinzhu/gorm"
+import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type User struct {
-	gorm.Model
+	Id primitive.ObjectID`bson:"_id"`
 	Username string
 	PassHash string
 	Salt string
