@@ -3,9 +3,25 @@
 <head>
     <title>Hurlu's Recipes Manager</title>
 </head>
-
 <body>
 <h1>Welcome to Hurlu's recipes !</h1>
-<img src="/static/img/HappyZouzou.png" alt="Mr. Zouzou">
+<ul>
+    {{ range $ri, $recipe := .recipes }}
+        <li>
+            <h3> {{.Name}} </h3>
+            <p> Instructions : {{ .Instructions}}</p>
+            <ul>
+                {{ range $ii, $ingredient := .Ingredients }}
+                    <li>
+                        {{.Unit.DisplayUnit .Name (index $recipe.IngredientQuantities $ii)}}
+                        {{/*                    {{index $recipe.IngredientQuantities $ii }} {{.Name}}*/}}
+                    </li>
+                {{ end }}
+            </ul>
+        </li>
+        <br>
+    {{ end }}
+</ul>
+
 </body>
 </html>

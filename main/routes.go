@@ -10,11 +10,10 @@ import (
 	"net/http"
 )
 
-func mainRoutes(router *gin.Engine, db *mongo.Database){
-
+func mainRoutes(router *gin.Engine, db *mongo.Database) {
 	recipes := db.Collection("Recipes")
 
-	router.GET("/home", func(c *gin.Context){
+	router.GET("/home", func(c *gin.Context) {
 		var objRecipes []*models.Recipe
 		cur, err := recipes.Find(context.TODO(), bson.D{})
 		if err != nil {
@@ -30,6 +29,10 @@ func mainRoutes(router *gin.Engine, db *mongo.Database){
 				log.Fatal(err)
 			}
 
+			elem.FillIngredients(db)
+			for idx := range elem.Ingredients {
+				elem.Ingredients[idx].FillUnit(db)
+			}
 			objRecipes = append(objRecipes, &elem)
 		}
 
@@ -40,10 +43,10 @@ func mainRoutes(router *gin.Engine, db *mongo.Database){
 		// Close the cursor once finished
 		_ = cur.Close(context.TODO())
 
-		c.HTML(http.StatusOK, "index.html", gin.H{"recipes" : objRecipes})
+		c.HTML(http.StatusOK, "index.html", gin.H{"recipes": objRecipes})
 	})
 
-	router.NoRoute(func(c * gin.Context){
+	router.NoRoute(func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/home")
 	})
 
