@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{.recipe.Name}}</title>
+    <link href="/static/css/styles.css" type="text/css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0' />
+</head>
+<body class="page">
+{{.recipe.Instructions}}
+{{/*                <ul>*/}}
+{{/*                    {{ range $ii, $ingredient := .Ingredients }}*/}}
+{{/*                        <li>*/}}
+{{/*                            {{.Unit.DisplayUnit .Name (index $recipe.IngredientQuantities $ii)}}*/}}
+{{/*                            {{index $recipe.IngredientQuantities $ii }} {{.Name}}*/}}
+{{/*                        </li>*/}}
+{{/*                    {{ end }}*/}}
+{{/*                </ul>*/}}
+</body>
+</html>

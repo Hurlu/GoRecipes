@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
+	"math/rand"
 )
 
 type Recipe struct {
@@ -20,6 +21,18 @@ type Recipe struct {
 
 	Ingredients []Ingredient `bson:"-"`
 	Author      User         `bson:"-"`
+}
+
+func (r Recipe) GetUrl() string  {
+	return "recipe/" + r.Id.Hex()
+}
+
+func (r Recipe) DisplayPic() string {
+	if len(r.Picture) == 0 {
+		return "/static/img/placeholder.jpg"
+	}
+	return r.Picture[rand.Intn(len(r.Picture))]
+
 }
 
 func (r *Recipe) FillIngredients(db *mongo.Database) {

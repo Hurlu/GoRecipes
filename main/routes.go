@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"net/http"
@@ -50,9 +51,17 @@ func mainRoutes(router *gin.Engine, db *mongo.Database) {
 		c.Redirect(http.StatusMovedPermanently, "/home")
 	})
 
+	router.GET("/tags/:tag", func (c * gin.Context){
+		c.HTML(http.StatusOK, "tags.html", gin.H{})
+	})
+
 	router.GET("/recipe/:id", func(c *gin.Context) {
 		var recipe models.Recipe
-		err := db.Collection("Recipes").FindOne(context.TODO(), bson.D{{"id", c.Param("id")}}).Decode(&recipe)
+		id, err := primitive.ObjectIDFromHex(c.Param("id"))
+		if err != nil {
+			return
+		}
+		err = db.Collection("Recipes").FindOne(context.TODO(), bson.D{{"_id", id}}).Decode(&recipe)
 		if err != nil {
 			log.Fatal(err)
 		}
