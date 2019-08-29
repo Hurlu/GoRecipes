@@ -24,7 +24,7 @@ func main() {
 	}
 
 	mainRoutes(router, db)
-	//auth_routes(router, db)
+	auth_routes(router)
 
 	_ = router.Run()
 }

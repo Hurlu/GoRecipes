@@ -55,3 +55,37 @@ func (r *Recipe) FillIngredients(db *mongo.Database) {
 	}
 	_ = res.Close(context.TODO())
 }
+
+func GetAllFilledRecipes(db *mongo.Database) []Recipe{
+	recipes := db.Collection("Recipes")
+
+	var objRecipes []Recipe
+	cur, err := recipes.Find(context.TODO(), bson.D{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for cur.Next(context.TODO()) {
+
+		var elem Recipe
+		err := cur.Decode(&elem)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		elem.FillIngredients(db)
+		for idx := range elem.Ingredients {
+			elem.Ingredients[idx].FillUnit(db)
+		}
+		objRecipes = append(objRecipes, elem)
+	}
+
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Close the cursor once finished
+	_ = cur.Close(context.TODO())
+
+	return objRecipes;
+}

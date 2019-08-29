@@ -2,57 +2,26 @@ package main
 
 import (
 	"GoRecipes/models"
+	"bytes"
 	"context"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"html/template"
 	"log"
 	"net/http"
 )
 
 func mainRoutes(router *gin.Engine, db *mongo.Database) {
-	recipes := db.Collection("Recipes")
-
 	router.GET("/home", func(c *gin.Context) {
-		var objRecipes []*models.Recipe
-		cur, err := recipes.Find(context.TODO(), bson.D{})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for cur.Next(context.TODO()) {
-
-			// create a value into which the single document can be decoded
-			var elem models.Recipe
-			err := cur.Decode(&elem)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			elem.FillIngredients(db)
-			for idx := range elem.Ingredients {
-				elem.Ingredients[idx].FillUnit(db)
-			}
-			objRecipes = append(objRecipes, &elem)
-		}
-
-		if err := cur.Err(); err != nil {
-			log.Fatal(err)
-		}
-
-		// Close the cursor once finished
-		_ = cur.Close(context.TODO())
-
+		var objRecipes []models.Recipe
+		objRecipes = models.GetAllFilledRecipes(db)
 		c.HTML(http.StatusOK, "index.html", gin.H{"recipes": objRecipes})
 	})
 
 	router.NoRoute(func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/home")
-	})
-
-	router.GET("/tags/:tag", func (c * gin.Context){
-		c.HTML(http.StatusOK, "tags.html", gin.H{})
 	})
 
 	router.GET("/recipe/:id", func(c *gin.Context) {
@@ -68,4 +37,20 @@ func mainRoutes(router *gin.Engine, db *mongo.Database) {
 		c.HTML(http.StatusOK, "recipe.html", gin.H{"recipe": recipe})
 	})
 
+
+	router.POST("/query", func(c *gin.Context) {
+		type Query struct {
+			Query     string
+		}
+		var json Query
+		c.Bind(&json)
+		var objRecipes []models.Recipe
+		objRecipes = models.SearchRecipes(json.Query, db)
+		tmpl, err := template.New("recipes").ParseFiles("_frontend/html/recipes.html")
+		if err != nil { log.Fatal(err) }
+		var str_tpl bytes.Buffer
+		err = tmpl.Execute(&str_tpl, gin.H{"recipes": objRecipes})
+		if err != nil { log.Fatal(err) }
+		c.JSON(200, gin.H{"value": str_tpl.String()})
+	})
 }

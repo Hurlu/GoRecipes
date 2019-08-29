@@ -1,0 +1,20 @@
+{{ define "header" }}
+    <header>
+        <div class='logo'>
+            <a href="/"><img alt="Miam!" src='/static/img/RasterLogo.png'/></a>
+        </div>
+        <ul class='menu'>
+            {{if not .isAuth}}
+                <li><a href='/login'>Se connecter</a></li>
+            {{else}}
+                <li><a href='/logout'>Se déconnecter</a></li>
+                <li><a href='/userprofile'><img class="userlogo" src="/static/img/User.png"/></a></li>
+            {{end}}
+        </ul>
+        <div class="nav__icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </header>
+{{end}}

@@ -1,0 +1,17 @@
+{{define "recipes"}}
+    {{ range $ri, $recipe := .recipes }}
+        <div class="box">
+            <div class="feature-img">
+                <img class="box-image" src="{{$recipe.DisplayPic}}" uri="{{$recipe.GetUrl}}">
+            </div>
+            <div class="box-content">
+                <h4 class="box-title">{{.Name}}</h4>
+                <ul class="tags">
+                    {{ range $ti, $tag := .Tags}}
+                        <li><a class="tag">{{$tag}}</a></li>
+                    {{ end }}
+                </ul>
+            </div>
+        </div>
+    {{ end }}
+{{ end }}

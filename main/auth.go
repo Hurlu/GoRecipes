@@ -1,60 +1,85 @@
 package main
 
 import (
-	"crypto/rand"
+	"GoRecipes/utilities"
+	"fmt"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/argon2"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"io/ioutil"
+	"log"
+	"net/http"
 )
 
-type ArgonParams struct {
-	memory      uint32
-	iterations  uint32
-	parallelism uint8
-	saltLength  uint32
-	keyLength   uint32
-}
+// cli-id : 366129222642-0f2m0k82m497rag5ls6jvftd9hj6is3b.apps.googleusercontent.com
+// ssecret w2DgP9O9J7vgtVOjtME8bWqA
+var googleOauthConfig *oauth2.Config
 
-func generateRandomBytes(n uint32) ([]byte, error) {
-	b := make([]byte, n)
-	_, err := rand.Read(b)
-	if err != nil {
-		return nil, err
+func setup_oauth(router *gin.Engine) {
+	googleOauthConfig = &oauth2.Config{
+		RedirectURL:  "http://localhost:8080/google_session",
+		ClientID:     "366129222642-0f2m0k82m497rag5ls6jvftd9hj6is3b.apps.googleusercontent.com",
+		ClientSecret: "w2DgP9O9J7vgtVOjtME8bWqA",
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile"},
+		Endpoint:     google.Endpoint,
 	}
 
-	return b, nil
+	router.GET("/login", func(c *gin.Context) {
+		state := utilities.RandoString(50)
+		sess := sessions.Default(c)
+		sess.Set("state", state)
+		sess.Save()
+		url := googleOauthConfig.AuthCodeURL(state)
+		c.Redirect(302, url)
+	})
+
+	router.GET("/logout", func(c *gin.Context) {
+		if IsAuth(c) {
+			sess := sessions.Default(c)
+			sess.Clear()
+		}
+		c.Redirect(302, "/home")
+	})
 }
 
-func generateFromPassword(password string, p *ArgonParams) (hash []byte, err error) {
-	// Generate a cryptographically secure random salt.
-	salt, err := generateRandomBytes(p.saltLength)
-	if err != nil {
-		return nil, err
-	}
-
-	// Pass the plaintext password, salt and parameters to the argon2.IDKey
-	// function. This will generate a hash of the password using the Argon2id
-	// variant.
-	hash = argon2.IDKey([]byte(password), salt, p.iterations, p.memory, p.parallelism, p.keyLength)
-
-	return hash, nil
-}
-
-func create_user(username string, password string) {
-//	p := &ArgonParams{
-//	memory:      64 * 1024,
-//	iterations:  3,
-//	parallelism: 2,
-//	saltLength:  16,
-//	keyLength:   32,
-//}
-//	hash, err := generateFromPassword("password123", p)
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-
-	return
+func setup_sessions(router *gin.Engine) {
+	store := cookie.NewStore([]byte("secret"))
+	router.Use(sessions.Sessions("session", store))
+	router.GET("google_session", func(c *gin.Context) {
+		sess := sessions.Default(c)
+		if sess.Get("state").(string) != c.Query("state") {
+			log.Fatal("invalid oauth state")
+		}
+		token, err := googleOauthConfig.Exchange(oauth2.NoContext, c.Query("code"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer response.Body.Close()
+		contents, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("Contents : %s\n", contents)
+		sess.Set("IsAuth", true)
+		sess.Save()
+		c.Redirect(302, "/home")
+	})
 }
 
 func auth_routes(router *gin.Engine) {
+	setup_sessions(router)
+	setup_oauth(router)
+}
 
+func IsAuth(c *gin.Context) bool {
+	session := sessions.Default(c)
+	auth := session.Get("IsAuth")
+	return auth != nil && auth.(bool) == true
 }

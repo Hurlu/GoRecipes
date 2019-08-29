@@ -11,52 +11,22 @@
 </head>
 
 <body class="page">
-<header>
-    <div class='logo'>
-        <a href="/"><img alt="Miam!" src='/static/img/RasterLogo.png'/></a>
-    </div>
-    <ul class='menu'>
-        <li>Rechercher</li>
-        <li><a href='/connect'>Se connecter</a></li>
-        <li><a href='/user/[[username]]'><img class="userlogo" src="/static/img/User.png"/></a></li>
-    </ul>
-    <div class="nav__icon">
-        <span></span>
-        <span></span>
-        <span></span>
-    </div>
-</header>
+{{ template "header" .}}
 <div class="flex">
-    <div class="flex box-container">
-        {{ range $ri, $recipe := .recipes }}
-            <div class="box">
-                <div class="feature-img">
-                    <img class="box-image" src="{{$recipe.DisplayPic}}" uri="{{$recipe.GetUrl}}">
-                </div>
-                <div class="box-content">
-                    <h4 class="box-title">{{.Name}}</h4>
-                    <ul class="tags">
-                    {{ range $ti, $tag := .Tags}}
-                        <li><a href="/tags/{{$tag}}" class="tag">{{$tag}}</a></li>
-                    {{ end }}
-                    </ul>
-                </div>
-            </div>
-        {{ end }}
+    <div id="recipes" class="flex box-container">
+        {{ template "recipes" .}}
     </div>
 </div>
+
 <form>
     <div class="search-div">
-        <form method="post" action="/tags/query">
-            <label></label>
-        <input type="text" name="search" class="search-txt" placeholder="Chercher une recette"/>
-        <a class="search-btn">
+        <input id="search-text" type="text" name="search" class="search-txt" placeholder="Chercher une recette"/>
+        <a id="search-submit" class="search-btn">
             <i class="fas fa-search"></i>
         </a>
         <a class="search-btn">
             <i class="fas fa-question-circle"></i>
         </a>
-        </form>
     </div>
 </form>
 
@@ -131,6 +101,7 @@
     }
 </script>
 
+{{/*Make clicking an image go to the related URL*/}}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         for (let elem of document.getElementsByClassName("box-image")) {
@@ -142,6 +113,7 @@
     })
 </script>
 
+{{/*Handle the drop-down header for mobile / tablet*/}}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         let elem = document.getElementsByClassName("nav__icon")[0];
@@ -171,6 +143,37 @@
             slideUp(menu, 0);
         }
     };
+
+</script>
+
+{{/* Handling of the searchbar */}}
+<script>
+    document.getElementById("search-submit").onclick = function () {
+        var input= document.getElementById("search-text");
+        var text = input.value;
+
+        var ajax = new XMLHttpRequest();
+
+        ajax.onreadystatechange = function() {
+            if (ajax.readyState == XMLHttpRequest.DONE) {   // XMLHttpRequest.DONE == 4
+                if (ajax.status == 200) {
+                    document.getElementById("recipes").innerHTML = JSON.parse(ajax.responseText)["value"]
+                }
+                else if (ajax.status == 400) {
+                    alert('There was an error 400');
+                }
+                else {
+                    alert('something else other than 200 was returned');
+                }
+            }
+        };
+
+        ajax.open("POST", "/query", true);
+        ajax.setRequestHeader('Content-Type', 'application/json');
+        ajax.send(JSON.stringify({
+            query: text
+        }));
+    }
 
 </script>
 
